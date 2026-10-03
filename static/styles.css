@@ -1,0 +1,36 @@
+body, html{
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+/*Make the body a flex container*/
+body {
+    display: flex;
+    justify-content: center;/*centers horizontally*/
+    align-items: center;/*centers vertically*/
+    background-color: #f4f4f9;
+    font-family: 'Courier New', Courier, monospace;
+}
+/*Style the container*/
+.container {
+    background: white;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    text-align: center;
+}
+input {
+    display: block;
+    width: 100%;
+    margin-bottom: 15px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+button {
+    width: 100%;
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}

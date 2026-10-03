@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>M-Pesa Paywall</title>
+    <!-- The line below is the magic -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Pay with M-Pesa</h1>
+        <form method="POST" action="/pay">
+            <input type="text" name="phone" placeholder="2547XXXXXXXX" required>
+            <input type="number" name="amount" placeholder="Amount" required>
+            <button type="submit">Pay</button>
+        </form>
+    </div>
+</body>
+</html>
