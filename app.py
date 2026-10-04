@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 import requests
 import base64
+import sqlite3
 import os
 from datetime import datetime
 from dotenv import load_dotenv
@@ -92,6 +93,7 @@ def pay():
 
 @app.route("/callback", methods=["POST"])
 def callback():
+    print("Hello from callback url")
     """The Mailbox: Safaricom POSTs the receipt here."""
     data = request.get_json()
     
@@ -99,7 +101,56 @@ def callback():
     print("\n--- RECEIVED CALLBACK ---")
     print(data)
     print("-------------------------\n")
-    
+
+    try:
+        # 1.Extract the data we care about from safaricom nested JSON
+        stk_callback = data['Body']['stkCallback']
+        result_code = stk_callback['ResultCode']
+        # Only save to DB if the transaction was successful
+        if result_code == 0:
+            metadata = stk_callback['CallbackMetadata']['Item']
+            # safaricom sends a list of items. we need to find those we want
+            # this is a dictionary comprehension to make it easier to read
+            items = {item['Name']: item.get('Value') for item in metadata}
+
+            receipt = items.get('MpesaReceiptNumber')
+            amount = items.get('Amount')
+            phone = items.get('PhoneNumber')
+            checkout_id = stk_callback['CheckoutRequestID']
+
+            # 2. Connect to SQLite databse (it will create the file if it doesn't exist)
+            conn = sqlite3.connect('payments.db')
+            cursor = conn.cursor()
+
+            # 3. Create table with UNIQUE receipt number (Idempotency)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS mpesa_transaction (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    receipt_number TEXT UNIQUE,
+                    amount REAL,
+                    phone_number TEXT,
+                    checkout_request_id TEXT,
+                    status TEXT,
+                    created_at TIMESTAMP DEAFAULT CURRENT_TIMESTAMP
+                )           
+                
+            ''')
+            # 4. Insert the transaction
+            cursor.execute('''
+                INSERT INTO mpesa_transaction (receipt_number, amount, phone_number, checkout_request_id, status)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (receipt, amount, phone, checkout_id, 'SUCCESS'))
+
+            # Save changes and close connection
+            conn.commit()
+            conn.close()
+
+            print(f"SAVED TO DATABASE: Receipt {receipt} for KSH {amount}")
+    except sqlite3.IntegrityError:
+        # This catches the UNIQUE constraint violation. It means the receipt already exists
+        print("DUPLICATE CALLBACK RECEIVED. Ignoring.")
+    except Exception as e:
+        print(f"Error processing callback: {e}")            
     # Tell Safaricom we received it
     return jsonify({"ResultCode": 0, "ResultDesc": "Accepted"})
 
