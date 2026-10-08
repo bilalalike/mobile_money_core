@@ -26,17 +26,10 @@ def get_access_token():
     ).decode()
     
     headers = {"Authorization": f"Basic {encoded}"}
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()  # Raises an HTTPError for bad responses
-        return response.json()["access_token"]
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching access token: {e}")
-        raise  # Re-raise the exception to be handled by the caller
-    except ValueError as e:  # Includes JSONDecodeError
-        print(f"Error parsing JSON response: {e}")
-        print(f"Response text: {response.text[:200]}")  # Limit output
-        raise
+    response = requests.get(url, headers=headers)
+    
+    # Return just the token string
+    return response.json()["access_token"]
 
 def send_stk_push(phone, amount):
     """Orders the pizza (sends the STK Push)."""
@@ -92,15 +85,11 @@ def pay():
     phone = request.form.get("phone")
     amount = request.form.get("amount")
     
-    try:
-        # Call our Daraja function
-        result = send_stk_push(phone, amount)
-        # Send the result back to the browser so we can see it
-        return f"STK Push triggered. Safaricom says: {result}"
-    except Exception as e:
-        # Log the error for debugging
-        print(f"Error in pay route: {e}")
-        return f"An error occurred: {str(e)}", 500
+    # Call our Daraja function
+    result = send_stk_push(phone, amount)
+    
+    # Send the result back to the browser so we can see it
+    return f"STK Push triggered. Safaricom says: {result}"
 
 @app.route("/callback", methods=["POST"])
 def callback():
